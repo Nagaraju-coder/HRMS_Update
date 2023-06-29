@@ -99,7 +99,6 @@
     <bean id="employeeService" class="service.EmployeeLeaveService" autowire="byName" />
     <bean id="leaveValidation" class="models.LeaveValidationModel" autowire="byName"/>
     <bean id="approvedLeaveModel" class="models.ApprovedLeaveModel" scope="prototype"/>
-    <bean id="leaveRequestDAO" class="DAO.EmployeeLeaveRequestDAOImpl" />
     <bean id="attendance" class="models.EmployeeAttendance" autowire="byName" />
     <bean id="attendanceEvent" class="models.AttendanceEvent" scope="prototype"></bean>
 	<bean id="attendanceId" class="models.EmployeeAttendanceId" autowire="byName" />
@@ -132,6 +131,7 @@
 	<bean id="employeeAttendanceDAO" class="DAO.EmployeeAttendanceDAOImpl" autowire="byName" />
 	  <bean id="empoffdocComposite" class="models.EmploymentOfferDocComposite" scope="prototype"/>
     <bean id="employmentofferdocument" class="models.EmploymentOfferDocument" scope="prototype"/>
+        <bean id="leaveRequestDAO" class="DAO.EmployeeLeaveRequestDAOImpl" autowire="byName"/>
     
     
 </beans>

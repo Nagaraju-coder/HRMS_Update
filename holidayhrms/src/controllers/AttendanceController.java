@@ -40,7 +40,7 @@ import service_interfaces.EmployeeAttendanceServiceInterface;
 @Controller
 public class AttendanceController {
 
-	private static final Logger logger = LoggerFactory.getLogger(AttendanceController.class);
+	private static Logger logger = LoggerFactory.getLogger(AttendanceController.class);
 
 	private EmployeeAttendance attendance;
 	private EmployeeAttendanceId attendanceId;

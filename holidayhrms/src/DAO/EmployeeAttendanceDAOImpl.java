@@ -10,6 +10,8 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import DAO_Interfaces.EmployeeAttendanceDAO;
@@ -17,23 +19,35 @@ import models.EmployeeAttendance;
 
 @Repository
 public class EmployeeAttendanceDAOImpl implements EmployeeAttendanceDAO {
+
+	private static Logger logger = LoggerFactory.getLogger(EmployeeAttendanceDAOImpl.class);
+
 	@PersistenceContext
 	private EntityManager entityManager;
 
+	// Saves the employee attendance record to the database.
 	@Override
 	public void save(EmployeeAttendance employeeAttendance) {
 		entityManager.persist(employeeAttendance);
 	}
 
+	// Retrieves the next attendance request index for the given employee ID.
 	@Override
 	public int getNextAttendanceRequestIndex(int employeeId) {
 		String queryString = "SELECT COALESCE(MAX(ea.attendanceId.emplPIndex), 0) + 1 " + "FROM EmployeeAttendance ea "
 				+ "WHERE ea.attendanceId.employeeId = :employeeId";
 		Query query = entityManager.createQuery(queryString);
 		query.setParameter("employeeId", employeeId);
-		return (Integer) query.getSingleResult();
+
+		int nextIndex = (Integer) query.getSingleResult();
+
+		logger.info("Next attendance request index for employeeId {}: {}", employeeId, nextIndex);
+
+		return nextIndex;
+
 	}
 
+	// Retrieves the punch-in and punch-out data for yesterday for the given employee ID.
 	@Override
 	public List<Object[]> getYesterdayPunchInAndPunchOut(int employeeId) {
 		LocalDate yesterday = LocalDate.now().minusDays(1);
@@ -52,10 +66,13 @@ public class EmployeeAttendanceDAOImpl implements EmployeeAttendanceDAO {
 
 		List<Object[]> results = query.getResultList();
 
+		logger.info("Retrieved yesterday's punch-in and punch-out data for employeeId {}", employeeId);
+
 		return results;
 
 	}
 
+	// Retrieves the punch-in and punch-out data for the specified year, month, and employee ID.
 	@Override
 	public List<Object[]> getPunchInAndPunchOutDataForYearAndMonthAndEmployee(int employeeId, int selectedYear,
 			int selectedMonth) {
@@ -69,6 +86,10 @@ public class EmployeeAttendanceDAOImpl implements EmployeeAttendanceDAO {
 		query.setParameter("selectedMonth", selectedMonth);
 
 		List<Object[]> results = query.getResultList();
+
+		logger.info("Retrieved punch-in and punch-out data for employeeId {} in year {} and month {}: {}", employeeId,
+				selectedYear, selectedMonth);
+
 		return results;
 	}
 

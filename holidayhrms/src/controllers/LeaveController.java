@@ -11,6 +11,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpSession;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
@@ -41,25 +43,26 @@ import service_interfaces.EmployeeLeaveServiceInterface;
 @Controller
 public class LeaveController {
 
-	@Autowired
-	public LeaveController(EmployeeLeaveRequest leaveRequest, EmployeeLeaveRequestId leaveRequestId, Gson gson,
-			EmployeeLeaveService employeeService) {
-		this.leaveRequest = leaveRequest;
-		this.leaveRequestId = leaveRequestId;
-		this.gson = gson;
-		this.employeeService = employeeService;
-	}
+	private static Logger logger = LoggerFactory.getLogger(LeaveController.class);
 
 	private EmployeeLeaveRequest leaveRequest;
 	private EmployeeLeaveRequestId leaveRequestId;
 	private Gson gson;
 	private EmployeeLeaveServiceInterface employeeService;
+	private EmployeeLeaveRequestDAO leaveRequestDAO;
+
+	@Autowired
+	public LeaveController(EmployeeLeaveRequest leaveRequest, EmployeeLeaveRequestId leaveRequestId, Gson gson,
+			EmployeeLeaveService employeeService, EmployeeLeaveRequestDAO leaveRequestDAO) {
+		this.leaveRequest = leaveRequest;
+		this.leaveRequestId = leaveRequestId;
+		this.gson = gson;
+		this.employeeService = employeeService;
+		this.leaveRequestDAO = leaveRequestDAO;
+	}
 
 	@PersistenceContext
 	private EntityManager entityManager;
-
-	@Autowired
-	private EmployeeLeaveRequestDAO leaveRequestDAO;
 
 	@Autowired
 	private EmployeeDAO employeeDAO;
@@ -69,7 +72,7 @@ public class LeaveController {
 
 	// to get the leave form
 	@RequestMapping(value = "/leaveform", method = RequestMethod.GET)
-	public String leaverequest(HttpSession session, Model model) {
+	public String applyLeaveForm(HttpSession session, Model model) {
 
 		try {
 
@@ -97,9 +100,11 @@ public class LeaveController {
 			model.addAttribute("validationData", validation);
 			// Adds the validation data as an attribute named "validationData" to the model
 
+			logger.info("Requested the Leave form");
+
 			return "leaveform";
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("Failed to process leave request form.", e);
 			return "error";
 		}
 	}
@@ -128,20 +133,29 @@ public class LeaveController {
 
 			// Set the leave request ID and save the leave request
 			leaveRequest.setLeaveRequestId(leaveRequestId);
-			leaveRequestDAO.saveEmployeeLeaveRequest(leaveRequest);
+			try {
+				leaveRequestDAO.saveEmployeeLeaveRequest(leaveRequest);
+			} catch (Exception e) {
+				logger.info("Error saving the Leave request");
+			}
+
+			logger.info("Leave request submitted successfully");
+
+			return ResponseEntity.ok("Success");
 
 		} catch (Exception e) {
-			System.out.println(e);
+			logger.error("Failed to submit leave request.", e);
 			String errorMessage = "Internal Server Error";
 			return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
-		return ResponseEntity.ok("Success");
 	}
 
 	// to get leave requests at admin side
 	@RequestMapping(value = "/leaveRequests", method = RequestMethod.GET)
-	public String leaveRequests(HttpSession session, Model model) {
+	public String getAdminSideLeaveRequests(HttpSession session, Model model) {
+
+		logger.info("Getting the leave requests");
 
 		try {
 			// Get the admin ID from the session
@@ -175,15 +189,17 @@ public class LeaveController {
 				}
 
 			}
-			 // Add the output model list to the model
+			// Add the output model list to the model
 			model.addAttribute("data", outputmodel);
+
+			logger.info("The leave requests are successfully loaded");
 
 			// Return the view name for rendering
 			return "AdminLeaveRequests";
 
 		} catch (Exception e) {
 			// Handle any exceptions that may occur
-			e.printStackTrace();
+			logger.error("Failed to retrieve leave requests.", e);
 			return "error";
 		}
 
@@ -192,9 +208,11 @@ public class LeaveController {
 	// to reject leave
 	@RequestMapping(value = "/rejectLeave", method = RequestMethod.POST)
 	@Transactional
-	public ResponseEntity<String> rejectLreave(@ModelAttribute EmployeeLeaveModel employeeLeaveModel) {
+	public ResponseEntity<String> rejectLeave(@ModelAttribute EmployeeLeaveModel employeeLeaveModel) {
 		try {
-			
+
+			logger.info("reject Leave requested");
+
 			// set the employee ID and leave request index to leave request id from the model
 			leaveRequestId.setEmployeeId(employeeLeaveModel.getEmpId());
 			leaveRequestId.setLeaveRequestIndex(employeeLeaveModel.getLeaveRequestIndex());
@@ -203,12 +221,14 @@ public class LeaveController {
 			EmployeeLeaveRequest employeeLeaveRequest = leaveRequestDAO.getEmployeeLeaveRequest(leaveRequestId);
 
 			if (employeeLeaveRequest != null) {
-				 // Set the approvedBy field to -1 to indicate rejection
+				// Set the approvedBy field to -1 to indicate rejection
 				employeeLeaveRequest.setApprovedBy(-1);
 			}
 
+			logger.info("Leave successfully rejected.");
+
 		} catch (Exception e) {
-			System.out.println(e);
+			logger.error("Failed to reject leave request.", e);
 			String errorMessage = "Internal Server Error";
 			return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
@@ -222,6 +242,9 @@ public class LeaveController {
 	public ResponseEntity<String> acceptLeave(@ModelAttribute EmployeeLeaveInputModel employeeLeaveInputModel,
 			HttpSession session) {
 		try {
+
+			logger.info("/acceptLeave endpoint requested");
+
 			// set the employee ID and leave request index to leave request id from the model
 			leaveRequestId.setEmployeeId(employeeLeaveInputModel.getEmployeeId());
 			leaveRequestId.setLeaveRequestIndex(employeeLeaveInputModel.getLeaveRequestIndex());
@@ -232,9 +255,9 @@ public class LeaveController {
 			int adminId = (int) session.getAttribute("adminId");
 
 			if (employeeLeaveRequest != null) {
-				 // Set the approvedBy field to the admin ID
+				// Set the approvedBy field to the admin ID
 				employeeLeaveRequest.setApprovedBy(adminId);
-				 // Set the approved leave start date, end date, and remarks from the input model
+				// Set the approved leave start date, end date, and remarks from the input model
 				employeeLeaveRequest.setApprovedLeaveEndDate(
 						LocalDate.parse(employeeLeaveInputModel.getLeaveEndDate(), DateTimeFormatter.ISO_DATE));
 				employeeLeaveRequest.setApprovedLeaveStartDate(
@@ -242,9 +265,11 @@ public class LeaveController {
 				employeeLeaveRequest.setApprovedRemarks(employeeLeaveInputModel.getRemarks());
 			}
 
+			logger.info("Leave successfully accepted.");
+
 		} catch (Exception e) {
 			// Handle any exceptions that may occur
-		    e.printStackTrace();
+			logger.error("Failed to accept leave request.", e);
 			String errorMessage = "Internal Server Error";
 			return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
@@ -254,33 +279,39 @@ public class LeaveController {
 
 	// to get admin approved leaves
 	@RequestMapping(value = "/AdminapprovedLeaves", method = RequestMethod.GET)
-	public String adminApprovedLeaves(Model model, HttpSession session) {
+	public String getAdminApprovedLeaves(Model model, HttpSession session) {
 
 		try {
-		int id = (int) session.getAttribute("adminId");
-		// Create a list to store the approved leave models
-		List<ApprovedLeaveModel> approvedOutModel = new ArrayList<>();
-        // Retrieve the approved employee and leave request data based on the admin ID
-		List<EmployeeLeaveRequest> approvedLeaves = leaveRequestDAO.getApprovedEmployeeAndLeaveRequestData(id);
-		for (EmployeeLeaveRequest leave : approvedLeaves) {
-			 // Retrieve the employee information for each approved leave
-			Employee employee = employeeDAO.getEmployee(leave.getLeaveRequestId().getEmployeeId());
-			// Create a new approved leave model
-			ApprovedLeaveModel approvedLeaveModel = context.getBean(ApprovedLeaveModel.class);
-			approvedLeaveModel.setEmployeeId(employee.getEmplId());
-			approvedLeaveModel.setEmployeeName(employee.getEmplFirstname() + " " + employee.getEmplLastname());
-			approvedLeaveModel.setApprovedStartDate(leave.getApprovedLeaveStartDate());
-			approvedLeaveModel.setApprovedEndDate(leave.getApprovedLeaveEndDate());
-			// Add the approved leave model to the list
-			approvedOutModel.add(approvedLeaveModel);
-		}
-		// Add the approved leaves to the model attribute
-		model.addAttribute("approvedLeaves", approvedOutModel);
-		}catch(Exception e) {
-			e.printStackTrace();
+
+			logger.info("Getting admin approved Leaves");
+
+			int id = (int) session.getAttribute("adminId");
+			// Create a list to store the approved leave models
+			List<ApprovedLeaveModel> approvedOutModel = new ArrayList<>();
+			// Retrieve the approved employee and leave request data based on the admin ID
+			List<EmployeeLeaveRequest> approvedLeaves = leaveRequestDAO.getApprovedEmployeeAndLeaveRequestData(id);
+			for (EmployeeLeaveRequest leave : approvedLeaves) {
+				// Retrieve the employee information for each approved leave
+				Employee employee = employeeDAO.getEmployee(leave.getLeaveRequestId().getEmployeeId());
+				// Create a new approved leave model
+				ApprovedLeaveModel approvedLeaveModel = context.getBean(ApprovedLeaveModel.class);
+				approvedLeaveModel.setEmployeeId(employee.getEmplId());
+				approvedLeaveModel.setEmployeeName(employee.getEmplFirstname() + " " + employee.getEmplLastname());
+				approvedLeaveModel.setApprovedStartDate(leave.getApprovedLeaveStartDate());
+				approvedLeaveModel.setApprovedEndDate(leave.getApprovedLeaveEndDate());
+				// Add the approved leave model to the list
+				approvedOutModel.add(approvedLeaveModel);
+			}
+			// Add the approved leaves to the model attribute
+			model.addAttribute("approvedLeaves", approvedOutModel);
+
+			logger.info("Admin approved are successfully loaded.");
+
+		} catch (Exception e) {
+			logger.error("Failed to get admin approved leaves.", e);
 			return "error";
 		}
-		 // Return the view for displaying the admin-approved leaves
+		// Return the view for displaying the admin-approved leaves
 		return "AdminApprovedLeaves";
 	}
 
@@ -289,29 +320,35 @@ public class LeaveController {
 	public String getEmployeeLeavesHistory(Model model, HttpSession session) {
 
 		try {
-		int id = (int) session.getAttribute("employeeId");
-		// Create a list to store the employee leave models
-		List<EmployeeLeaveModel> history = new ArrayList<>();
-		// Retrieve the leave request history for the employee
-		List<EmployeeLeaveRequest> employeeLeavesData = leaveRequestDAO.getLeaveRequestHistory(id);
-		for (EmployeeLeaveRequest leave : employeeLeavesData) {
-			 // Create a new employee leave model
-			EmployeeLeaveModel leavemodel = context.getBean(EmployeeLeaveModel.class);
-			leavemodel.setLeaveRequestIndex(leave.getLeaveRequestId().getLeaveRequestIndex());
-			leavemodel.setLeaveRequestDate(leave.getRequestDateTime());
-			leavemodel.setLeaveStartDate(leave.getApprovedLeaveStartDate());
-			leavemodel.setLeaveEndDate(leave.getApprovedLeaveEndDate());
-			leavemodel.setLeaveType(leave.getLeaveType());
-			leavemodel.setReason(leave.getReason());
-			leavemodel.setStatus(leave.getApprovedBy());
-			// Add the employee leave model to the list
-			history.add(leavemodel);
 
-		}
-		// Add the leave history to the model attribute
-		model.addAttribute("leavehistory", history);
-		}catch(Exception e) {
-			e.printStackTrace();
+			logger.info("Getting Employee Leaves History");
+
+			int id = (int) session.getAttribute("employeeId");
+			// Create a list to store the employee leave models
+			List<EmployeeLeaveModel> history = new ArrayList<>();
+			// Retrieve the leave request history for the employee
+			List<EmployeeLeaveRequest> employeeLeavesData = leaveRequestDAO.getLeaveRequestHistory(id);
+			for (EmployeeLeaveRequest leave : employeeLeavesData) {
+				// Create a new employee leave model
+				EmployeeLeaveModel leavemodel = context.getBean(EmployeeLeaveModel.class);
+				leavemodel.setLeaveRequestIndex(leave.getLeaveRequestId().getLeaveRequestIndex());
+				leavemodel.setLeaveRequestDate(leave.getRequestDateTime());
+				leavemodel.setLeaveStartDate(leave.getApprovedLeaveStartDate());
+				leavemodel.setLeaveEndDate(leave.getApprovedLeaveEndDate());
+				leavemodel.setLeaveType(leave.getLeaveType());
+				leavemodel.setReason(leave.getReason());
+				leavemodel.setStatus(leave.getApprovedBy());
+				// Add the employee leave model to the list
+				history.add(leavemodel);
+
+			}
+			// Add the leave history to the model attribute
+			model.addAttribute("leavehistory", history);
+
+			logger.info("successfully Loaded the Employees Leave History");
+
+		} catch (Exception e) {
+			logger.error("Failed to get Employee Leaves History.", e);
 			return "error";
 		}
 		// Return the view for displaying the employee's leave history
@@ -322,29 +359,31 @@ public class LeaveController {
 	@RequestMapping(value = "/getJobGradeWiseLeaves", method = RequestMethod.GET)
 	public String getJobGradeWiseLeaves(Model model) {
 		try {
-	        // Retrieve the job grade-wise leaves from the DAO
-		List<JobGradeWiseLeaves> jobGradeLeaves = leaveRequestDAO.getJobGradeWiseLeaves();
-        // Create a list to store the job grade leaves output models
-		List<JobGradeLeavesOutModel> result = new ArrayList<>();
-		for (JobGradeWiseLeaves leaves : jobGradeLeaves) {
-            // Create a new job grade leaves output model
-			JobGradeLeavesOutModel leavedata = context.getBean(JobGradeLeavesOutModel.class);
-			leavedata.setJobGradeId(leaves.getJbgrId());
-			leavedata.setTotalLeaves(leaves.getTotalLeavesPerYear());
-			leavedata.setSickLeaves(leaves.getSickLeavesPerYear());
-			leavedata.setCasualLeaves(leaves.getCasualLeavesPerYear());
-			leavedata.setOtherLeaves(leaves.getOtherLeavesPerYear());
-            // Add the job grade leaves output model to the list
-			result.add(leavedata);
-		}
-        // Add the job grade leaves to the model attribute
-		model.addAttribute("jobgradeleaves", result);
-		
-		}catch(Exception e) {
-			e.printStackTrace();
+			logger.info("Getting Job Grade Wise Leaves");
+			// Retrieve the job grade-wise leaves from the DAO
+			List<JobGradeWiseLeaves> jobGradeLeaves = leaveRequestDAO.getJobGradeWiseLeaves();
+			// Create a list to store the job grade leaves output models
+			List<JobGradeLeavesOutModel> result = new ArrayList<>();
+			for (JobGradeWiseLeaves leaves : jobGradeLeaves) {
+				// Create a new job grade leaves output model
+				JobGradeLeavesOutModel leavedata = context.getBean(JobGradeLeavesOutModel.class);
+				leavedata.setJobGradeId(leaves.getJbgrId());
+				leavedata.setTotalLeaves(leaves.getTotalLeavesPerYear());
+				leavedata.setSickLeaves(leaves.getSickLeavesPerYear());
+				leavedata.setCasualLeaves(leaves.getCasualLeavesPerYear());
+				leavedata.setOtherLeaves(leaves.getOtherLeavesPerYear());
+				// Add the job grade leaves output model to the list
+				result.add(leavedata);
+			}
+			// Add the job grade leaves to the model attribute
+			model.addAttribute("jobgradeleaves", result);
+			logger.info("Job Grade Wise Leaves are loaded successfully.");
+
+		} catch (Exception e) {
+			logger.error("Failed to get Job Grade Wise Leaves.", e);
 			return "error";
 		}
-	    // Return the view for displaying the job grade-wise leaves
+		// Return the view for displaying the job grade-wise leaves
 		return "jobGradeWiseLeaves";
 	}
 
@@ -352,24 +391,31 @@ public class LeaveController {
 	@RequestMapping(value = "/getLeaveStatistics", method = RequestMethod.GET)
 	public ResponseEntity<String> getLeaveStatistics(HttpSession session) {
 		try {
-		int id = (int) session.getAttribute("employeeId");
-        // Retrieve the employee information from the DAO using the employee ID
-		Employee employee = employeeDAO.getEmployee(id);
 
-        // Retrieve the leaves provided statistics based on the job grade ID of the employee from the DAO
-		JobGradeWiseLeaves leavesProvidedStatistics = leaveRequestDAO
-				.getJobGradeWiseLeaves(employee.getEmplJbgrId().trim());
+			logger.info("Getting Leave Statistics");
 
-        // Retrieve the approved leave requests for the employee ID and the current year from the DAO
-		List<EmployeeLeaveRequest> leaves = leaveRequestDAO.getApprovedLeaveRequests(employee.getEmplId(),
-				Year.now().getValue());
-        // Calculate the leaves taken based on the retrieved leave request data and leaves provided statistics using the service method
-		LeaveValidationModel validation = employeeService.calculateLeavesTaken(leaves, leavesProvidedStatistics);
-		return ResponseEntity.ok(gson.toJson(validation));
-		}catch(Exception e) {
-			e.printStackTrace();
+			int id = (int) session.getAttribute("employeeId");
+			// Retrieve the employee information from the DAO using the employee ID
+			Employee employee = employeeDAO.getEmployee(id);
+
+			// Retrieve the leaves provided statistics based on the job grade ID of the employee from the DAO
+			JobGradeWiseLeaves leavesProvidedStatistics = leaveRequestDAO
+					.getJobGradeWiseLeaves(employee.getEmplJbgrId().trim());
+
+			// Retrieve the approved leave requests for the employee ID and the current year from the DAO
+			List<EmployeeLeaveRequest> leaves = leaveRequestDAO.getApprovedLeaveRequests(employee.getEmplId(),
+					Year.now().getValue());
+			// Calculate the leaves taken based on the retrieved leave request data and leaves provided statistics using
+			// the service method
+			LeaveValidationModel validation = employeeService.calculateLeavesTaken(leaves, leavesProvidedStatistics);
+
+			logger.info("Leave Statistics Loaded Successfully");
+
+			return ResponseEntity.ok(gson.toJson(validation));
+		} catch (Exception e) {
+			logger.error("Failed to get Leave Statistics.", e);
 			String errorMessage = "Internal Server Error";
-	        return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
