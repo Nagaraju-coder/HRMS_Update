@@ -28,12 +28,14 @@ import com.google.gson.Gson;
 
 import DAO_Interfaces.EmployeeDAO;
 import DAO_Interfaces.EmployeeLeaveRequestDAO;
+import DAO_Interfaces.HolidayDAO;
 import models.ApprovedLeaveModel;
 import models.Employee;
 import models.EmployeeLeaveInputModel;
 import models.EmployeeLeaveModel;
 import models.EmployeeLeaveRequest;
 import models.EmployeeLeaveRequestId;
+import models.HrmsJobGrade;
 import models.JobGradeWiseLeaves;
 import models.LeaveValidationModel;
 import models.input.output.JobGradeLeavesOutModel;
@@ -50,15 +52,20 @@ public class LeaveController {
 	private Gson gson;
 	private EmployeeLeaveServiceInterface employeeService;
 	private EmployeeLeaveRequestDAO leaveRequestDAO;
+	private HolidayDAO holidayDAO;
+	private JobGradeWiseLeaves jobGradeWiseLeaves;
 
 	@Autowired
 	public LeaveController(EmployeeLeaveRequest leaveRequest, EmployeeLeaveRequestId leaveRequestId, Gson gson,
-			EmployeeLeaveService employeeService, EmployeeLeaveRequestDAO leaveRequestDAO) {
+			EmployeeLeaveService employeeService, EmployeeLeaveRequestDAO leaveRequestDAO, HolidayDAO holidayDAO,
+			JobGradeWiseLeaves jobGradeWiseLeaves) {
 		this.leaveRequest = leaveRequest;
 		this.leaveRequestId = leaveRequestId;
 		this.gson = gson;
 		this.employeeService = employeeService;
 		this.leaveRequestDAO = leaveRequestDAO;
+		this.holidayDAO = holidayDAO;
+		this.jobGradeWiseLeaves = jobGradeWiseLeaves;
 	}
 
 	@PersistenceContext
@@ -375,8 +382,15 @@ public class LeaveController {
 				// Add the job grade leaves output model to the list
 				result.add(leavedata);
 			}
+
+			// get all the existing job grades
+			List<HrmsJobGrade> existingJobGrades = holidayDAO.getAllJobGradesInfo();
+
 			// Add the job grade leaves to the model attribute
 			model.addAttribute("jobgradeleaves", result);
+
+			model.addAttribute("jobgradeinfo", existingJobGrades);
+
 			logger.info("Job Grade Wise Leaves are loaded successfully.");
 
 		} catch (Exception e) {
@@ -417,6 +431,28 @@ public class LeaveController {
 			String errorMessage = "Internal Server Error";
 			return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
+	}
+
+	@RequestMapping(value = "/addjobgradeleaves", method = RequestMethod.POST)
+	public ResponseEntity<String> addJobGradeLeaves(@ModelAttribute JobGradeLeavesOutModel jobGradeLeavesmodel) {
+		jobGradeWiseLeaves.setJbgrId(jobGradeLeavesmodel.getJobGradeId());
+		jobGradeWiseLeaves.setCasualLeavesPerYear(jobGradeLeavesmodel.getCasualLeaves());
+		jobGradeWiseLeaves.setTotalLeavesPerYear(jobGradeLeavesmodel.getTotalLeaves());
+		jobGradeWiseLeaves.setSickLeavesPerYear(jobGradeLeavesmodel.getSickLeaves());
+		jobGradeWiseLeaves.setOtherLeavesPerYear(jobGradeLeavesmodel.getOtherLeaves());
+
+		leaveRequestDAO.saveJobGradeLeaveRequest(jobGradeWiseLeaves);
+
+		return ResponseEntity.ok("jobgrade wise leaves data is added successfully");
+
+	}
+
+	@RequestMapping(value = "/updatejobgradeleaves", method = RequestMethod.POST)
+	public ResponseEntity<String> updateJobGradeLeaves(@ModelAttribute JobGradeLeavesOutModel jobGradeLeavesmodel) {
+		leaveRequestDAO.updateJobGradeLeaveRequest(jobGradeLeavesmodel);
+
+		return ResponseEntity.ok("jobgrade wise leaves data is added successfully");
+
 	}
 
 }

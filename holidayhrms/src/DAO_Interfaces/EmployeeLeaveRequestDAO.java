@@ -5,6 +5,7 @@ import java.util.List;
 import models.EmployeeLeaveRequest;
 import models.EmployeeLeaveRequestId;
 import models.JobGradeWiseLeaves;
+import models.input.output.JobGradeLeavesOutModel;
 
 public interface EmployeeLeaveRequestDAO {
 
@@ -13,7 +14,7 @@ public interface EmployeeLeaveRequestDAO {
 	 * 
 	 * @param leaveRequest The employee leave request to be saved.
 	 */
-	void saveEmployeeLeaveRequest(EmployeeLeaveRequest leaveRequest) throws Exception;
+	void saveEmployeeLeaveRequest(EmployeeLeaveRequest leaveRequest);
 
 	/**
 	 * Retrieves the next leave request index for the given employee ID.
@@ -87,4 +88,8 @@ public interface EmployeeLeaveRequestDAO {
 	 * @return A list of approved leave requests.
 	 */
 	List<EmployeeLeaveRequest> getApprovedLeaveRequests(int id, int year);
+
+	void saveJobGradeLeaveRequest(JobGradeWiseLeaves request);
+
+	void updateJobGradeLeaveRequest(JobGradeLeavesOutModel jobGradeLeavesmodel);
 }

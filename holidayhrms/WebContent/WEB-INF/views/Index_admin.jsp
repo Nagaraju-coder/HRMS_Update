@@ -437,6 +437,21 @@
     }
     
     
+    function getJobGrades(){
+    	 $.ajax({
+     	    type: "GET",
+     	    url: "getJobGradeList",
+     	   
+     	    success: function(response) {
+     	      var containerDiv = $("#main");
+     	      containerDiv.html(response);
+     	    },
+     	    error: function() {
+     	      alert("Error occurred. Please try again later.");
+     	    }
+     	  });
+    }
+    
     </script>
     
   
@@ -527,6 +542,9 @@
               </div>
               <li class="item">
                 <a onclick="getHolidays();"><i class="ri-file-list-line"></i> Holidays</a>
+              </li>
+               <li class="item">
+                <a onclick="getJobGrades();"><i class="ri-file-list-line"></i> Job Grades</a>
               </li>
               <li class="item">
                 <a onclick="getHolidaysByGrade();"><i class="ri-file-list-line"></i> Grade Wise Holidays</a>

@@ -10,11 +10,13 @@ import javax.persistence.TypedQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import DAO_Interfaces.EmployeeLeaveRequestDAO;
 import models.EmployeeLeaveRequest;
 import models.EmployeeLeaveRequestId;
 import models.JobGradeWiseLeaves;
+import models.input.output.JobGradeLeavesOutModel;
 
 @Repository
 public class EmployeeLeaveRequestDAOImpl implements EmployeeLeaveRequestDAO {
@@ -26,7 +28,7 @@ public class EmployeeLeaveRequestDAOImpl implements EmployeeLeaveRequestDAO {
 
 	// Saves the employee leave request to the database.
 	@Override
-	public void saveEmployeeLeaveRequest(EmployeeLeaveRequest leaveRequest) throws Exception {
+	public void saveEmployeeLeaveRequest(EmployeeLeaveRequest leaveRequest) {
 		entityManager.persist(leaveRequest);
 		logger.info("Employee leave request saved successfully.");
 	}
@@ -121,6 +123,28 @@ public class EmployeeLeaveRequestDAOImpl implements EmployeeLeaveRequestDAO {
 		query.setParameter("year", year);
 		List<EmployeeLeaveRequest> result = query.getResultList();
 		return result;
+	}
+
+	// adds the job grade wise leaves data.
+	@Override
+	@Transactional
+	public void saveJobGradeLeaveRequest(JobGradeWiseLeaves request) {
+		entityManager.persist(request);
+		logger.info("Job Grade Leave request is added successfully.");
+	}
+
+	@Override
+	@Transactional
+	public void updateJobGradeLeaveRequest(JobGradeLeavesOutModel jobGradeLeavesmodel) {
+		JobGradeWiseLeaves jobGradeWiseLeaves = entityManager.find(JobGradeWiseLeaves.class,
+				jobGradeLeavesmodel.getJobGradeId());
+		jobGradeWiseLeaves.setCasualLeavesPerYear(jobGradeLeavesmodel.getCasualLeaves());
+		jobGradeWiseLeaves.setTotalLeavesPerYear(jobGradeLeavesmodel.getTotalLeaves());
+		jobGradeWiseLeaves.setSickLeavesPerYear(jobGradeLeavesmodel.getSickLeaves());
+		jobGradeWiseLeaves.setOtherLeavesPerYear(jobGradeLeavesmodel.getOtherLeaves());
+
+		entityManager.merge(jobGradeWiseLeaves);
+
 	}
 
 }

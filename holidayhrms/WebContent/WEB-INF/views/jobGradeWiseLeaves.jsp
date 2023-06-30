@@ -1,3 +1,4 @@
+<%@page import="models.HrmsJobGrade"%>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -124,10 +125,6 @@ tr:nth-child(even) {
 	cursor: pointer;
 }
 
-.button.delete {
-	background-color: #f44336;
-}
-
 .button-container {
 	text-align: center;
 	margin-top: 20px;
@@ -142,6 +139,8 @@ tr:nth-child(even) {
 
 
 </style>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js" integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g=" crossorigin="anonymous"></script>
 <script>
 	function showEditModal(jobGradeId, totalLeaves, casualLeaves, sickLeaves,
 			otherLeaves) {
@@ -166,14 +165,27 @@ tr:nth-child(even) {
 	}
 
 	function updateLeaves() {
-		var modal = document.getElementById("editModal");
-
-		// Perform update operation using AJAX or form submission
-		// ...
-
-		// Close the modal and refresh the page
-		modal.style.display = "none";
-		location.reload();
+		var modal = $("#editModal");
+		var modalContent = $("#editModalContent");
+		var formData = $("#editForm");
+		
+		$.ajax({
+			url:"updatejobgradeleaves",
+			method:"POST",
+			data:formData.serialize(),
+			success: function (response){
+				console.log(response);
+				alert("updated successfully");
+				location.reload();
+			},
+			error:function (error){
+				console.log(error);
+				alert("something went wrong.please try again.");
+			}
+			
+		});
+		
+		
 	}
 
 	function showAddModal() {
@@ -191,21 +203,33 @@ tr:nth-child(even) {
 	}
 
 	function addRow() {
-		var modal = document.getElementById("addModal");
-
-		// Perform add operation using AJAX or form submission
-		// ...
-
-		// Close the modal and refresh the page
-		modal.style.display = "none";
-		location.reload();
+		var modal = $("#addModal");
+		var modalContent = $("#addModalContent");
+		var formData = $("#addForm");
+		
+		$.ajax({
+			url:"addjobgradeleaves",
+			method:"POST",
+			data:formData.serialize(),
+			success: function (response){
+				console.log(response);
+				alert("added successfully.");
+				location.reload();
+			},
+			error:function (error){
+				console.log(error);
+				alert("something went wrong.please try again.");
+			}
+			
+		});
+		
 	}
 </script>
 </head>
 <body>
 	<h1>Job Grade Leaves</h1>
 	<%@ page import="java.util.List, java.util.ArrayList"%>
-	<%@ page import="models.input.output.JobGradeLeavesOutModel"%>
+	<%@ page import="models.input.output.JobGradeLeavesOutModel,models.HrmsJobGrade"%>
 	<table>
 		<tr>
 			<th>Job Grade ID</th>
@@ -228,7 +252,6 @@ tr:nth-child(even) {
 			<td><%=jobGrade.getOtherLeaves()%></td>
 			<td>
 				<button class="button edit" onclick="showEditModal('<%=jobGrade.getJobGradeId()%>', <%=jobGrade.getTotalLeaves()%>,<%=jobGrade.getCasualLeaves()%>, <%=jobGrade.getSickLeaves()%>, <%=jobGrade.getOtherLeaves()%>)">Edit</button>
-				<button class="button delete" onclick="deleteRow('<%=jobGrade.getJobGradeId()%>')">Delete</button> <!-- Add Delete button -->
 			</td>
 		</tr>
 		<%
@@ -248,8 +271,17 @@ tr:nth-child(even) {
 			<h2>Add Job Grade Leaves</h2>
 			<form id="addForm">
 				<div class="form-row">
-					<label for="addJobGradeId">Job Grade ID:</label> <input type="text"
-						id="addJobGradeId" name="jobGradeId">
+					<select id="addJobGradeId" name="jobGradeId">
+					<option value="">Select Job Grade ID</option>
+					<%
+					List<HrmsJobGrade> jobgrades = (List<HrmsJobGrade>) request.getAttribute("jobgradeinfo");
+						for (HrmsJobGrade jobGrade : jobgrades) {
+					%>
+					<option value="<%= jobGrade.getId() %>"><%= jobGrade.getId() %></option>
+					<%
+						}
+					%>
+				</select>
 				</div>
 
 				<div class="form-row">

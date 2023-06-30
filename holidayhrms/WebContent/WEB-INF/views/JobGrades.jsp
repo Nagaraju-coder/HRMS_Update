@@ -227,6 +227,8 @@ tr:nth-child(even) {
 			data:formData.serialize(),
 			success:function (response){
 				console.log(response);
+				alert("added successfully.");
+				location.reload();
 			},
 		    error:function (error){
 		    	console.log(error);

@@ -8,6 +8,7 @@ DAO\HolidayDAOImpl.class
 service\ReferenceServiceImpl.class
 models\input\output\CandidateIO.class
 controllers\OfferLetterController.class
+models\JobGradeModel.class
 DAO\EmployeeLeaveRequestDAOImpl.class
 service\EmployeeAttendanceService.class
 DAO\ReferenceDAOImpl.class
@@ -16,7 +17,6 @@ models\PermissionAdminModel.class
 DAO\EmployeeAttendanceDAOImpl.class
 controllers\LoginController.class
 models\EmployeeLeaveRequest.class
-models\JobGrade.class
 DAO\PayRollDAOImpl.class
 models\EmployeeAttendanceId.class
 DAO\EmploymentInductionDocDAOImpl.class
