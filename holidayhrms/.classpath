@@ -23,12 +23,5 @@
 			<attribute name="org.eclipse.jst.component.dependency" value="/WEB-INF/lib"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="src" path="/Leaves"/>
-	<classpathentry kind="lib" path="C:/Users/bhaskar.p/Downloads/gson-2.2.2.jar/gson-2.2.2.jar">
-		<attributes>
-			<attribute name="org.eclipse.jst.component.dependency" value="/WEB-INF/lib"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="src" path="/Ref_HRM"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

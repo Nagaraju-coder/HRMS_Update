@@ -38,9 +38,9 @@
     <!-- DataSource configuration -->
     <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <property name="driverClassName" value="org.postgresql.Driver" />
-        <property name="url" value="jdbc:postgresql://192.168.110.48:5432/plf_training" />
-        <property name="username" value="plf_training_admin" />
-        <property name="password" value="pff123" />
+        <property name="url" value="jdbc:postgresql://localhost:5432/postgres" />
+        <property name="username" value="postgres" />
+        <property name="password" value="007" />
     </bean>
     
     <!-- EntityManager configuration -->
@@ -132,6 +132,6 @@
 	  <bean id="empoffdocComposite" class="models.EmploymentOfferDocComposite" scope="prototype"/>
     <bean id="employmentofferdocument" class="models.EmploymentOfferDocument" scope="prototype"/>
         <bean id="leaveRequestDAO" class="DAO.EmployeeLeaveRequestDAOImpl" autowire="byName"/>
-    
+    <bean id="jobGrade" class="models.HrmsJobGrade" autowire="byName"/>
     
 </beans>
